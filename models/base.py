@@ -1,46 +1,55 @@
 # models/base.py
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import (create_engine,
+    Column,
+    Integer,
+    String,
+    Float,       
+    DateTime,
+    ForeignKey,
+    Text,)
+from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
 Base = declarative_base()
+engine = create_engine("sqlite:///data/experiments.db", echo=False)
 
-
+# ─────────────────── Cell ────────────────────
 class Cell(Base):
     __tablename__ = "cells"
     id             = Column(Integer, primary_key=True)
-    cell_id        = Column(String, unique=True)        # e.g. S‑01
-    chemistry      = Column(String)                    # Zn‑Br variant
-    rated_capacity = Column(Float)                     # mAh
-    configuration  = Column(String)                    # e.g. 2×2 cm
+    cell_id        = Column(String, unique=True)
+    chemistry      = Column(String)
+    rated_capacity = Column(Float)
+    configuration  = Column(String)
     assembly_date  = Column(DateTime)
     notes          = Column(Text)
 
-    channel        = Column(Integer)                   # 1‑8
-    status         = Column(String)                    # 'running'/'stopped'
+    channel        = Column(Integer)     # 1‑8
+    status         = Column(String)      # 'running' / 'stopped'
 
     cycles = relationship("Cycle", back_populates="cell", cascade="all,delete")
 
+ # ─────────────────── Cycle ───────────────────
 class Cycle(Base):
     __tablename__ = "cycles"
+    id              = Column(Integer, primary_key=True)
+    cell_id         = Column(Integer, ForeignKey("cells.id"))   # ← key line
+    cycle_no        = Column(Integer)
+    current_density = Column(Float)
+    charge_V        = Column(Float)
+    discharge_V     = Column(Float)
+    capacity_mAh    = Column(Float)
+    pH              = Column(Float)
+    csv_path        = Column(String)
+    ce_pct          = Column(Float)
+    delta_V         = Column(Float)
+    observation     = Column(Text)
+    photo_path      = Column(String)
 
-    id = Column(Integer, primary_key=True)
-    cell_id = Column(Integer)  # foreign key in full version
-    cycle_no = Column(Integer)
-    current_density = Column(String)
-    charge_V = Column(String)
-    discharge_V = Column(String)
-    capacity_mAh = Column(String)
-    pH = Column(String)
-    csv_path = Column(String)  # if uploaded
-    ce_pct = Column(String)  # auto-calculated
-    delta_V = Column(String)  # auto-calculated
-    observation = Column(Text)
-    photo_path = Column(String)  # optional image
+    cell = relationship("Cell", back_populates="cycles")
 
 
 # DB connection
-engine = create_engine("sqlite:///data/experiments.db", echo=True)
-Base.metadata.create_all(engine)
-Base.metadata.create_all(engine)
+if __name__ == "__main__":
+    Base.metadata.create_all(engine)
