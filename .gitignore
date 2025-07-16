@@ -1,0 +1,17 @@
+# ⛔ Ignore database and runtime files
+data/
+media/
+*.db
+*.sqlite
+
+
+# ⛔ Ignore Python cache & virtual environments
+__pycache__/
+*.py[cod]
+venv/
+.env
+*.egg-info/
+
+# ⛔ OS-specific
+.DS_Store
+Thumbs.db
