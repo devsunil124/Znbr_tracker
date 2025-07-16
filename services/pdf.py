@@ -3,6 +3,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 import os
 
+
 def build_pdf(cell_id, cell_data, cycle_data, output_path=""):
     filename = os.path.join(output_path or "media", f"{cell_id}.pdf")
     c = canvas.Canvas(filename, pagesize=A4)
@@ -18,7 +19,13 @@ def build_pdf(cell_id, cell_data, cycle_data, output_path=""):
         try:
             img_width = 6 * cm
             img_height = 4.5 * cm
-            c.drawImage(cell_data.start_photo, 50, y - img_height, width=img_width, height=img_height)
+            c.drawImage(
+                cell_data.start_photo,
+                50,
+                y - img_height,
+                width=img_width,
+                height=img_height,
+            )
             y -= img_height + 20
         except Exception as e:
             c.setFont("Helvetica", 10)
@@ -58,7 +65,13 @@ def build_pdf(cell_id, cell_data, cycle_data, output_path=""):
                     c.showPage()
                     y = height - 50
 
-                c.drawImage(cycle.photo_path, 60, y - img_height, width=img_width, height=img_height)
+                c.drawImage(
+                    cycle.photo_path,
+                    60,
+                    y - img_height,
+                    width=img_width,
+                    height=img_height,
+                )
                 y -= img_height + 10
             except Exception as e:
                 c.drawString(60, y, f"⚠️ Error loading cycle image: {str(e)}")

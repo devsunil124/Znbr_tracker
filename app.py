@@ -6,6 +6,7 @@ from services.excel import build_excel
 from models.base import Cell, engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+from models.base import Cycle
 import os
 
 
@@ -50,7 +51,7 @@ with st.form("add_cell_form"):
                 felt_type=felt_type,
                 sealing_type=sealing_type,
                 notes=notes,
-                start_photo=photo_path
+                start_photo=photo_path,
             )
             session.add(new_cell)
             session.commit()
@@ -118,7 +119,7 @@ with st.form("log_cycle"):
             delta_V=delta_v,
             csv_path=csv_path,
             observation=observation,
-            photo_path=photo_path
+            photo_path=photo_path,
         )
         session.add(new_cycle)
         session.commit()
@@ -126,9 +127,9 @@ with st.form("log_cycle"):
 
 
 st.header("📄 Export Report")
-report_cell = st.selectbox("Select Cell to Export", list(cell_map.keys()), key="report_cell")
-
-from models.base import Cell, Cycle
+report_cell = st.selectbox(
+    "Select Cell to Export", list(cell_map.keys()), key="report_cell"
+)
 
 selected_id = cell_map[report_cell]
 cell_data = session.query(Cell).get(selected_id)
@@ -140,16 +141,19 @@ with col_pdf:
     if st.button("Generate PDF Report"):
         pdf_path = build_pdf(report_cell, cell_data, cycle_data)
         with open(pdf_path, "rb") as f:
-            st.download_button("📥 Download PDF", f.read(), file_name=f"{report_cell}_report.pdf")
+            st.download_button(
+                "📥 Download PDF", f.read(), file_name=f"{report_cell}_report.pdf"
+            )
 
 with col_excel:
     if st.button("Generate Excel Report"):
         excel_path = build_excel(report_cell, cell_data, cycle_data)
         if os.path.exists(excel_path):
             with open(excel_path, "rb") as f:
-                st.download_button("📥 Download Excel", f.read(), file_name=f"{report_cell}_report.xlsx")
+                st.download_button(
+                    "📥 Download Excel",
+                    f.read(),
+                    file_name=f"{report_cell}_report.xlsx",
+                )
         else:
             st.error("Failed to create Excel report.")
-
-
-

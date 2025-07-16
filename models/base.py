@@ -6,9 +6,10 @@ from datetime import datetime
 
 Base = declarative_base()
 
+
 class Cell(Base):
-    __tablename__ = 'cells'
-    
+    __tablename__ = "cells"
+
     id = Column(Integer, primary_key=True)
     cell_id = Column(String, unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
@@ -17,8 +18,9 @@ class Cell(Base):
     notes = Column(Text)
     start_photo = Column(String)  # path to image
 
+
 class Cycle(Base):
-    __tablename__ = 'cycles'
+    __tablename__ = "cycles"
 
     id = Column(Integer, primary_key=True)
     cell_id = Column(Integer)  # foreign key in full version
@@ -28,11 +30,12 @@ class Cycle(Base):
     discharge_V = Column(String)
     capacity_mAh = Column(String)
     pH = Column(String)
-    csv_path = Column(String)        # if uploaded
-    ce_pct = Column(String)          # auto-calculated
-    delta_V = Column(String)         # auto-calculated
+    csv_path = Column(String)  # if uploaded
+    ce_pct = Column(String)  # auto-calculated
+    delta_V = Column(String)  # auto-calculated
     observation = Column(Text)
-    photo_path = Column(String)      # optional image
+    photo_path = Column(String)  # optional image
+
 
 # DB connection
 engine = create_engine("sqlite:///data/experiments.db", echo=True)
