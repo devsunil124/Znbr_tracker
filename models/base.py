@@ -9,15 +9,18 @@ Base = declarative_base()
 
 class Cell(Base):
     __tablename__ = "cells"
+    id             = Column(Integer, primary_key=True)
+    cell_id        = Column(String, unique=True)        # e.g. S‑01
+    chemistry      = Column(String)                    # Zn‑Br variant
+    rated_capacity = Column(Float)                     # mAh
+    configuration  = Column(String)                    # e.g. 2×2 cm
+    assembly_date  = Column(DateTime)
+    notes          = Column(Text)
 
-    id = Column(Integer, primary_key=True)
-    cell_id = Column(String, unique=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.now)
-    felt_type = Column(String)
-    sealing_type = Column(String)
-    notes = Column(Text)
-    start_photo = Column(String)  # path to image
+    channel        = Column(Integer)                   # 1‑8
+    status         = Column(String)                    # 'running'/'stopped'
 
+    cycles = relationship("Cycle", back_populates="cell", cascade="all,delete")
 
 class Cycle(Base):
     __tablename__ = "cycles"
