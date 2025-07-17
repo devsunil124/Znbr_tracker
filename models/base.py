@@ -9,7 +9,6 @@ from sqlalchemy import (create_engine,
     ForeignKey,
     Text,)
 from sqlalchemy.orm import declarative_base, relationship
-from datetime import datetime
 
 Base = declarative_base()
 engine = create_engine("sqlite:///data/experiments.db", echo=False)

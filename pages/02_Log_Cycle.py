@@ -1,9 +1,7 @@
 # pages/02_Log_Cycle.py  ───────────────────────────────────────────
-from datetime import datetime
 from pathlib import Path
 import uuid
 
-import pandas as pd
 import streamlit as st
 from sqlalchemy.orm import Session
 
