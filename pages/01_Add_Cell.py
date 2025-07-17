@@ -15,6 +15,8 @@ with st.form("add_cell"):
     rated_capacity = c1.number_input("Rated Capacity (mAh)*", min_value=0.0)
     configuration  = c1.text_input("Configuration", placeholder="e.g. 2×2 cm")
     asm_date       = c2.date_input("Assembly Date", value=datetime.today())
+    znbr_molarity  = c2.number_input("ZnBr molarity (eg: 1M)*", min_value=0.0)
+    teacl_molarity = c2.number_input("TEACl molarity (eg: 1M)*", min_value=0.0)
     notes          = st.text_area("Notes", height=80)
     channel_pick   = c2.selectbox("Cycler Channel", range(1, 9),
                                   index=(prefill - 1) if prefill else 0)
@@ -28,6 +30,8 @@ if submitted:
                 chemistry=chemistry,
                 rated_capacity=rated_capacity,
                 configuration=configuration,
+                znbr_molarity=znbr_molarity,       
+                teacl_molarity=teacl_molarity,     
                 assembly_date=datetime.combine(asm_date, datetime.min.time()),
                 notes=notes,
                 channel=channel_pick,

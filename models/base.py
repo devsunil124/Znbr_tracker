@@ -24,6 +24,8 @@ class Cell(Base):
     configuration  = Column(String)
     assembly_date  = Column(DateTime)
     notes          = Column(Text)
+    znbr_molarity  = Column(Float)   # eg 1M
+    teacl_molarity = Column(Float)
 
     channel        = Column(Integer)     # 1‑8
     status         = Column(String)      # 'running' / 'stopped'

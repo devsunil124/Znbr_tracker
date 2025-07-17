@@ -39,8 +39,6 @@ charge_V       = c2.number_input("Max charge voltage (V)*",   min_value=0.0, ste
 discharge_V    = c2.number_input("Min discharge voltage (V)*",min_value=0.0, step=0.001, key="discharge_V")
 
 current_density = c3.number_input("Current density (mA/cm²)*", min_value=0.0, step=0.1, key="j")
-pH             = c3.number_input("pH (optional)", value=7.0, step=0.1, key="ph")
-
 observation    = st.text_area("Observations / issues", placeholder="Leaks, colour …", key="obs")
 attachment     = st.file_uploader("Attach graph/photo (optional)", type=["png", "jpg", "csv", "xlsx"], key="att")
 
@@ -69,7 +67,7 @@ if save_clicked:
                 charge_V=charge_V,
                 discharge_V=discharge_V,
                 capacity_mAh=discharge_ah * 1000,
-                pH=pH,
+                #pH=None,
                 csv_path=str(attach_path) if attach_path else None,
                 ce_pct=ce_pct,
                 delta_V=delta_v,

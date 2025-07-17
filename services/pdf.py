@@ -50,7 +50,7 @@ def build_pdf(cell_id, cell_data, cycle_data, output_path=""):
     c.setFont("Helvetica", 10)
 
     for cycle in cycle_data:
-        line = f"Cycle {cycle.cycle_no} | CE%: {cycle.ce_pct} | ΔV: {cycle.delta_V} | pH: {cycle.pH}"
+        line = f"Cycle {cycle.cycle_no} | CE%: {cycle.ce_pct} | ΔV: {cycle.delta_V} "
         c.drawString(60, y, line)
         y -= 15
 
