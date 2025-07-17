@@ -24,7 +24,14 @@ if not running:
     st.stop()
 
 cell_opts = {f"{c.cell_id} (Ch {c.channel})": c.id for c in running}
-cell_label = st.selectbox("Select running cell ▼", list(cell_opts.keys()))
+prefill_id = st.session_state.pop("log_cell_id", None)
+options = list(cell_opts.keys())
+if prefill_id and prefill_id in cell_opts.values():
+    default_index = options.index(next(k for k, v in cell_opts.items() if v == prefill_id))
+else:
+    default_index = 0
+
+cell_label = st.selectbox("Select running cell ▼", options, index=default_index)
 cell_db_id = cell_opts[cell_label]
 
 # ⭐ NEW: show next cycle number right away

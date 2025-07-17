@@ -49,25 +49,33 @@ st.dataframe(dash, hide_index=True, use_container_width=True)
 
 # ── 3. action buttons per channel ─────────────────────────────────
 for ch in range(1, 9):
-    col_label, col_btn = st.columns([3, 1])
+    col_label, col_log, col_stop = st.columns([3, 1, 1])
     col_label.write(f"**Channel {ch}**")
 
     row = dash.loc[dash["Channel"] == ch]
     is_empty = row["Cell ID"].iloc[0] == "—"
 
     if is_empty:
-        if col_btn.button("Start", key=f"start_{ch}"):
+        if col_log.button("Start", key=f"start_{ch}"):
             st.session_state["new_channel"] = ch
             st.switch_page("pages/01_Add_Cell.py")
     else:
-        if col_btn.button("Stop", key=f"stop_{ch}"):
+       # look up the running cell once
+        with Session(engine) as ses:
+            cell = (
+                ses.query(Cell)
+                .filter(Cell.channel == ch, Cell.status == "running")
+                .first()
+            )
+
+        # LOG button → pre‑select this cell on Log‑Cycle page
+        if col_log.button("Log", key=f"log_{ch}"):
+            st.session_state["log_cell_id"] = cell.id
+            st.switch_page("pages/02_Log_Cycle.py")
+
+        # STOP button
+        if col_stop.button("Stop", key=f"stop_{ch}"):
             with Session(engine) as ses:
-                cell = (
-                    ses.query(Cell)
-                    .filter(Cell.channel == ch, Cell.status == "running")
-                    .first()
-                )
-                if cell:
-                    cell.status = "stopped"
-                    ses.commit()
+                cell.status = "stopped"
+                ses.commit()
             st.rerun()
