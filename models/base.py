@@ -1,5 +1,5 @@
 # models/base.py
-
+from datetime import datetime
 from sqlalchemy import (create_engine,
     Column,
     Integer,
@@ -47,6 +47,7 @@ class Cycle(Base):
     delta_V         = Column(Float)
     observation     = Column(Text)
     photo_path      = Column(String)
+    created_at      = Column(DateTime, default=datetime.utcnow)
 
     cell = relationship("Cell", back_populates="cycles")
 

@@ -1,7 +1,7 @@
 # pages/02_Log_Cycle.py  ───────────────────────────────────────────
 from pathlib import Path
 import uuid
-
+from datetime import datetime
 import streamlit as st
 from sqlalchemy.orm import Session
 
@@ -26,8 +26,31 @@ if not running:
 cell_opts = {f"{c.cell_id} (Ch {c.channel})": c.id for c in running}
 cell_label = st.selectbox("Select running cell ▼", list(cell_opts.keys()))
 cell_db_id = cell_opts[cell_label]
+
+# ⭐ NEW: show next cycle number right away
+with Session(engine) as ses:
+    current_cnt = ses.query(Cycle).filter(Cycle.cell_id == cell_db_id).count()
+next_cycle_no = current_cnt + 1
+st.markdown(f"**Next cycle number:** {next_cycle_no}")
+st.write("")  # tiny spacer
+
+
 # ── 2. manual‑entry widgets (no form) ────────────────────────────
 st.subheader("Enter cycle data")
+
+if st.session_state.get("reset_cycle_form", False):
+    st.session_state.update(
+        {
+            "charge_ah": 0.0,
+            "discharge_ah": 0.0,
+            "charge_V": 0.0,
+            "discharge_V": 0.0,
+            "j": 0.0,
+            "obs": "",
+        }
+    )
+    st.session_state.pop("att", None) 
+    st.session_state["reset_cycle_form"] = False  # clear flag
 
 c1, c2, c3 = st.columns(3)
 charge_ah      = c1.number_input("Charge capacity (Ah)*",     min_value=0.0, step=0.001, key="charge_ah")
@@ -42,7 +65,11 @@ attachment     = st.file_uploader("Attach graph/photo (optional)", type=["png", 
 
 # only enable button when required fields > 0
 required_ok = all(v > 0 for v in (charge_ah, discharge_ah, charge_V, discharge_V, current_density))
-save_clicked = st.button("💾 Save cycle", disabled=not required_ok)
+save_clicked = st.button(
+    "💾 Save cycle",
+    disabled=not required_ok,
+    key="save_cycle_clicked"
+)
 
 # ── 3. save if user clicked button ───────────────────────────────
 if save_clicked:
@@ -56,23 +83,28 @@ if save_clicked:
         attach_path.write_bytes(attachment.getbuffer())
 
     with Session(engine) as ses:
-        next_no = ses.query(Cycle).filter(Cycle.cell_id == cell_db_id).count() + 1
-        ses.add(
+        ses.add(                          # ← use next_cycle_no directly
             Cycle(
                 cell_id=cell_db_id,
-                cycle_no=next_no,
+                cycle_no=next_cycle_no,
                 current_density=current_density,
                 charge_V=charge_V,
                 discharge_V=discharge_V,
                 capacity_mAh=discharge_ah * 1000,
-                #pH=None,
                 csv_path=str(attach_path) if attach_path else None,
                 ce_pct=ce_pct,
                 delta_V=delta_v,
                 observation=observation,
+                created_at=datetime.utcnow(),
             )
         )
         ses.commit()
 
-    st.success(f"Cycle {next_no} saved ✔   CE % = {ce_pct} ΔV = {delta_v} V")
+    st.success(
+        f"Cycle {next_cycle_no} saved ✔   CE % = {ce_pct} ΔV = {delta_v} V"
+    )
+
+    # Jump back to dashboard so counts refresh with baloons
     st.balloons()
+    st.switch_page("app.py")
+    
