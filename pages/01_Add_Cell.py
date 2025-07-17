@@ -24,14 +24,37 @@ with st.form("add_cell"):
 
 if submitted:
     with Session(engine) as ses:
+        # 🔍 1. duplicate ID?
+        exists = ses.query(Cell).filter(Cell.cell_id == cell_id).first()
+        if exists:
+            st.error(
+                f"Cell ID ‘{cell_id}’ already exists. "
+                "Pick another ID or stop the existing cell first."
+            )
+            st.stop()
+
+        # 🔍 2. channel already running?
+        busy = (
+            ses.query(Cell)
+            .filter(Cell.channel == channel_pick, Cell.status == "running")
+            .first()
+        )
+        if busy:
+            st.error(
+                f"Channel {channel_pick} already has running cell ‘{busy.cell_id}’. "
+                "Stop it first or choose a different channel."
+            )
+            st.stop()
+
+        # 3. all clear → create the cell
         ses.add(
             Cell(
                 cell_id=cell_id,
                 chemistry=chemistry,
                 rated_capacity=rated_capacity,
                 configuration=configuration,
-                znbr_molarity=znbr_molarity,       
-                teacl_molarity=teacl_molarity,     
+                znbr_molarity=znbr_molarity,
+                teacl_molarity=teacl_molarity,
                 assembly_date=datetime.combine(asm_date, datetime.min.time()),
                 notes=notes,
                 channel=channel_pick,
@@ -39,7 +62,7 @@ if submitted:
             )
         )
         ses.commit()
-    if "new_channel" in st.session_state:
-        del st.session_state["new_channel"]
-    st.success(f"Cell {cell_id} → Channel {channel_pick} ✅")
-    st.switch_page("pages/00_Dashboard.py")
+        
+    st.success(f"Cell {cell_id} assigned to Channel {channel_pick} ✅")
+    st.session_state.pop("new_channel", None)
+    st.switch_page("app.py")
