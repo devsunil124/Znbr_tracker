@@ -60,11 +60,11 @@ if st.session_state.get("reset_cycle_form", False):
     st.session_state["reset_cycle_form"] = False  # clear flag
 
 c1, c2, c3 = st.columns(3)
-charge_ah      = c1.number_input("Charge capacity (Ah)*",     min_value=0.0, step=0.001, key="charge_ah")
-discharge_ah   = c1.number_input("Discharge capacity (Ah)*",  min_value=0.0, step=0.001, key="discharge_ah")
+charge_ah      = c1.number_input("Charge capacity (Ah)*",     min_value=0.0, step=0.00001, format="%.5f", key="charge_ah")
+discharge_ah   = c1.number_input("Discharge capacity (Ah)*",  min_value=0.0, step=0.00001, format="%.5f", key="discharge_ah")
 
-charge_V       = c2.number_input("Max charge voltage (V)*",   min_value=0.0, step=0.001, key="charge_V")
-discharge_V    = c2.number_input("Min discharge voltage (V)*",min_value=0.0, step=0.001, key="discharge_V")
+charge_V       = c2.number_input("Max charge voltage (V)*",   min_value=0.0, step=0.00001, format="%.5f", key="charge_V")
+discharge_V    = c2.number_input("Min discharge voltage (V)*",min_value=0.0, step=0.00001, format="%.5f", key="discharge_V")
 
 current_density = c3.number_input("Current density (mA/cm²)*", min_value=0.0, step=0.1, key="j")
 observation    = st.text_area("Observations / issues", placeholder="Leaks, colour …", key="obs")
@@ -80,8 +80,8 @@ save_clicked = st.button(
 
 # ── 3. save if user clicked button ───────────────────────────────
 if save_clicked:
-    ce_pct  = round((discharge_ah / charge_ah) * 100, 2)
-    delta_v = round(charge_V - discharge_V, 3)
+    ce_pct  = (discharge_ah / charge_ah) * 100
+    delta_v = (charge_V - discharge_V)
 
     attach_path = None
     if attachment:
@@ -108,7 +108,8 @@ if save_clicked:
         ses.commit()
 
     st.success(
-        f"Cycle {next_cycle_no} saved ✔   CE % = {ce_pct} ΔV = {delta_v} V"
+        f"Cycle {next_cycle_no} saved ✔ "
+        f"CE % = {ce_pct} ΔV = {delta_v:.4f} V"
     )
 
     # Jump back to dashboard so counts refresh with baloons
