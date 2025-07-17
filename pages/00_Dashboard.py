@@ -70,4 +70,4 @@ for ch in range(1, 9):
                 if cell:
                     cell.status = "stopped"
                     ses.commit()
-            st.experimental_rerun()
+            st.rerun()
