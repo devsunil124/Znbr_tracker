@@ -66,7 +66,7 @@ discharge_ah   = c1.number_input("Discharge capacity (Ah)*",  min_value=0.0, ste
 charge_V       = c2.number_input("Max charge voltage (V)*",   min_value=0.0, step=0.0001, format="%.4f", key="charge_V")
 discharge_V    = c2.number_input("Min discharge voltage (V)*",min_value=0.0, step=0.0001, format="%.4f", key="discharge_V")
 
-current_density = c3.number_input("Current density (mA/cm²)*", min_value=0.0, step=0.1, key="j")
+current_density = c3.number_input("Current density (mA/cm²)*", min_value=0.0, step=0.0001, format="%.4f", key="j")
 observation    = st.text_area("Observations / issues", placeholder="Leaks, colour …", key="obs")
 attachment     = st.file_uploader("Attach graph/photo (optional)", type=["png", "jpg", "csv", "xlsx"], key="att")
 
@@ -106,12 +106,22 @@ if save_clicked:
             )
         )
         ses.commit()
-
+        # ── DEBUG: did we really insert a row? ───────────────────
+        with Session(engine) as dbg:
+            total = dbg.query(Cycle).filter(Cycle.cell_id == cell_db_id).count()
+            latest = (
+                dbg.query(Cycle.delta_V, Cycle.ce_pct)
+                .filter(Cycle.cell_id == cell_db_id)
+                .order_by(Cycle.cycle_no.desc())
+                .first()
+            )
+        st.info(f"DEBUG → cycles now in DB for this cell: {total}  "
+                f"(last ΔV={latest.delta_V if latest else '—'})")
     st.success(
         f"Cycle {next_cycle_no} saved ✔ "
         f"CE % = {ce_pct} ΔV = {delta_v:.4f} V"
     )
-
+    
     # Jump back to dashboard so counts refresh with baloons
     st.balloons()
     st.switch_page("app.py")
