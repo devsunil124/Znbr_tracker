@@ -60,7 +60,16 @@ if not cells:
     st.stop()
 
 cell_map = {f"{c.cell_id} (Ch {c.channel or '—'})": c.id for c in cells}
-chosen_label = st.selectbox("Select a cell ▼", list(cell_map.keys()))
+prefill_id = st.session_state.pop("log_cell_id", None)
+cell_keys  = list(cell_map.keys())
+
+default_idx = (
+    cell_keys.index(next(k for k,v in cell_map.items() if v == prefill_id))
+    if prefill_id in cell_map.values()
+    else 0
+)
+
+chosen_label = st.selectbox("Select a cell ▼", cell_keys, index=default_idx)
 cell_id = cell_map[chosen_label]
 
 # ── 2. show cell metadata ────────────────────────────────────────

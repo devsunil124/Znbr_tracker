@@ -15,6 +15,9 @@ st.set_page_config(
 )
 
 st.title("📊 Cycler Dashboard (8 channels)")
+# in app.py sidebar
+st.sidebar.page_link("pages/02_Select_Cell.py", label="🔍 Select Cell")
+
 
 # ── fetch running cells & cycle stats ────────────────────────────
 with Session(engine) as ses:
