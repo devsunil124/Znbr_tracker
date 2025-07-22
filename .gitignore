@@ -1,17 +1,35 @@
-# ⛔ Ignore database and runtime files
-data/
-media/
-*.db
-*.sqlite
-
-
-# ⛔ Ignore Python cache & virtual environments
-__pycache__/
-*.py[cod]
+# Environment Folders
+# These contain packages specific to your computer and can be very large.
+# They should always be recreated from requirements.txt, not stored in Git.
+.venv/
+env/
 venv/
-.env
-*.egg-info/
+ENV/
 
-# ⛔ OS-specific
+# Streamlit Secrets
+# CRITICAL: Never commit your passwords or API keys to Git.
+.streamlit/secrets.toml
+
+# Uploaded User Data
+# As per your project plan, attachments will be stored here.
+# This folder should not be tracked by Git.
+media/
+
+# Python Cache
+# These are temporary files created by Python to run your code faster.
+# They are machine-specific and will be recreated automatically.
+__pycache__/
+*.pyc
+
+# IDE / Editor Configuration
+# Optional: Ignores settings folders from common editors like VS Code.
+.vscode/
+.idea/
+
+# OS-specific files
+# Ignores files created by macOS.
 .DS_Store
-Thumbs.db
+
+# Obsolete Local Data
+# The local SQLite database is no longer used.
+data/
