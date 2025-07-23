@@ -3,7 +3,7 @@ streamlit
 
 # Database
 sqlalchemy
-sqlalchemy-libsql
+psycopg2-binary
 
 # Data & Plotting
 pandas

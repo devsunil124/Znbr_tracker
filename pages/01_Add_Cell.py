@@ -1,10 +1,9 @@
 import streamlit as st
 from datetime import datetime
 
-# --- 1. IMPORTS UPDATED ---
-from database import get_db      # Import the new session handler
-from models.base import Cell     # Models still come from models.base
-# --------------------------
+# Imports updated
+from database import get_db
+from models.base import Cell
 
 prefill = st.session_state.get("new_channel")
 st.header("➕ Register New Cell")
@@ -26,10 +25,9 @@ with st.form("add_cell"):
     submitted = st.form_submit_button("Save & Start")
 
 if submitted:
-    # --- 2. SESSION HANDLING UPDATED ---
+    # --- VALIDATION LOGIC RESTORED HERE ---
     with get_db() as db:
-    # -----------------------------------
-        # 🔍 1. duplicate ID?
+        # 🔍 1. Check for duplicate Cell ID
         exists = db.query(Cell).filter(Cell.cell_id == cell_id).first()
         if exists:
             st.error(
@@ -38,7 +36,7 @@ if submitted:
             )
             st.stop()
 
-        # 🔍 2. channel already running?
+        # 🔍 2. Check if channel is already running
         busy = (
             db.query(Cell)
             .filter(Cell.channel == channel_pick, Cell.status == "running")
@@ -51,7 +49,7 @@ if submitted:
             )
             st.stop()
 
-        # 3. all clear → create the cell
+        # 3. All clear → create the cell
         db.add(
             Cell(
                 cell_id=cell_id,
@@ -67,6 +65,7 @@ if submitted:
             )
         )
         db.commit()
+    # --- END OF VALIDATION ---
 
     st.success(f"Cell {cell_id} assigned to Channel {channel_pick} ✅")
     st.session_state.pop("new_channel", None)

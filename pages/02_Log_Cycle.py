@@ -3,11 +3,11 @@ from pathlib import Path
 import uuid
 from datetime import datetime
 import streamlit as st
+from sqlalchemy import func # <-- Import 'func'
 
-# --- 1. IMPORTS UPDATED ---
+# Imports updated
 from database import get_db
 from models.base import Cell, Cycle
-# --------------------------
 
 # storage for any future attachments
 MEDIA_ROOT = Path("media")
@@ -15,13 +15,11 @@ MEDIA_ROOT.mkdir(exist_ok=True, parents=True)
 
 st.header("✍️ Log Cycle Data (manual)")
 
-# --- 2. SESSION HANDLING UPDATED ---
 # Fetch all running cells in one go
 with get_db() as db:
     running_cells = (
         db.query(Cell).filter(Cell.status == "running").order_by(Cell.cell_id).all()
     )
-# -----------------------------------
 
 if not running_cells:
     st.info("No cells are currently running. Start one on the Dashboard first.")
@@ -32,10 +30,9 @@ cell_opts = {f"{c.cell_id} (Ch {c.channel})": c.id for c in running_cells}
 options = list(cell_opts.keys())
 
 # Determine the default selection based on session state
-prefill_id = st.session_state.pop("log_cell_id", None)
+prefill_id = st.session_state.get("log_cell_id") # Use .get() instead of .pop()
 default_index = 0
 if prefill_id and prefill_id in cell_opts.values():
-    # Find the key (label) corresponding to the prefilled ID
     prefilled_key = next((k for k, v in cell_opts.items() if v == prefill_id), None)
     if prefilled_key:
         default_index = options.index(prefilled_key)
@@ -43,14 +40,17 @@ if prefill_id and prefill_id in cell_opts.values():
 cell_label = st.selectbox("Select running cell ▼", options, index=default_index)
 cell_db_id = cell_opts[cell_label]
 
-# Get the next cycle number for the selected cell
+# --- LOGIC CORRECTED HERE ---
+# Find the highest existing cycle number and add 1. This is more robust.
 with get_db() as db:
-    current_cnt = db.query(Cycle).filter(Cycle.cell_id == cell_db_id).count()
-next_cycle_no = current_cnt + 1
+    last_cycle_no = db.query(func.max(Cycle.cycle_no)).filter(Cycle.cell_id == cell_db_id).scalar()
+next_cycle_no = (last_cycle_no or 0) + 1
+# --- END OF CORRECTION ---
+
 st.markdown(f"**Next cycle number:** {next_cycle_no}")
 st.write("")  # tiny spacer
 
-# --- Input widgets (no changes here) ---
+# --- Input widgets ---
 st.subheader("Enter cycle data")
 c1, c2, c3 = st.columns(3)
 charge_ah = c1.number_input("Charge capacity (Ah)*", min_value=0.0, step=0.0001, format="%.4f", key="charge_ah")
@@ -64,7 +64,6 @@ attachment = st.file_uploader("Attach graph/photo (optional)", type=["png", "jpg
 required_ok = all(v > 0 for v in (charge_ah, discharge_ah, charge_V, discharge_V, current_density))
 save_clicked = st.button("💾 Save cycle", disabled=not required_ok, key="save_cycle_clicked")
 
-# --- 3. SAVE LOGIC UPDATED ---
 if save_clicked:
     ce_pct = (discharge_ah / charge_ah) * 100 if charge_ah > 0 else 0
     delta_v = charge_V - discharge_V
@@ -98,4 +97,5 @@ if save_clicked:
         f"CE % = {ce_pct:.2f} | ΔV = {delta_v:.4f} V"
     )
     st.balloons()
+    st.session_state.pop("log_cell_id", None) # Pop the key after using it
     st.switch_page("app.py")

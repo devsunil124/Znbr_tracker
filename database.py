@@ -2,22 +2,16 @@
 import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-
-# This is the explicit import fix from before
-import sqlalchemy_libsql
+from contextlib import contextmanager
 
 # Get secrets from st.secrets to connect to Turso
-db_url = st.secrets["TURSO_DATABASE_URL"]
-db_token = st.secrets["TURSO_AUTH_TOKEN"]
+db_url = st.secrets["DATABASE_URL"]
 
 # Create the SQLAlchemy engine for the Streamlit app
-engine = create_engine(
-    db_url,
-    connect_args={"auth_token": db_token}
-)
+engine = create_engine(db_url)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
+@contextmanager 
 def get_db():
     db = SessionLocal()
     try:

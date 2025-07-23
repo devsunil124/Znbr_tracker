@@ -2,18 +2,17 @@ import streamlit as st
 import pandas as pd
 from sqlalchemy import func
 
-# --- 1. IMPORTS UPDATED ---
+# Imports updated
 from database import get_db
 from models.base import Cell, Cycle
-# --------------------------
 
 st.header("🔍 Select a Cell")
 
-# 1. status filter + search box ----------------------------------
+# 1. status filter + search box
 status_choice = st.radio("Show", ["Running", "Stopped", "All"], horizontal=True)
 search_text = st.text_input("Filter by ID or channel contains…", "")
 
-# --- 2. SESSION HANDLING UPDATED ---
+# 2. Fetch data from the database
 with get_db() as db:
     q = db.query(Cell).order_by(Cell.cell_id)
     if status_choice != "All":
@@ -22,14 +21,13 @@ with get_db() as db:
 
     # Get cycle counts with a single efficient query
     counts = {}
-    if cells: # Only run this query if there are cells
+    if cells:
         counts = dict(
             db.query(Cycle.cell_id, func.count())
             .filter(Cycle.cell_id.in_([c.id for c in cells]))
             .group_by(Cycle.cell_id)
             .all()
         )
-# -----------------------------------
 
 # Filter the results in Python based on the search text
 rows = [
@@ -47,9 +45,10 @@ rows = [
 df = pd.DataFrame(rows)
 st.dataframe(df, hide_index=True, use_container_width=True)
 
-# 2. choose a row -------------------------------------------------
-cell_ids = df["Cell ID"].tolist()
-if cell_ids:
+# --- 3. LOGIC CORRECTED HERE ---
+# Check if the DataFrame is empty *before* trying to access its columns
+if not df.empty:
+    cell_ids = df["Cell ID"].tolist()
     picked = st.selectbox("Select cell ID ↓", cell_ids)
     # Find the full cell object from our initial list (no new DB query)
     picked_cell = next((c for c in cells if c.cell_id == picked), None)
@@ -67,4 +66,5 @@ if cell_ids:
                 st.session_state["log_cell_id"] = picked_cell.id
                 st.switch_page("pages/02_Log_Cycle.py")
 else:
+    # This message now correctly shows when the table is empty
     st.info("No cells match the current filter.")
