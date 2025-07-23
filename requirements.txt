@@ -4,9 +4,9 @@ streamlit
 # Database
 sqlalchemy
 psycopg2-binary
+alembic
+python-dotenv
 
 # Data & Plotting
 pandas
-plotlyalembic
-alembic
-python-dotenv
+plotly
