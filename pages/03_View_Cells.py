@@ -2,15 +2,13 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# --- 1. IMPORTS UPDATED ---
+# Imports updated
 from database import get_db
 from models.base import Cell, Cycle
-# --------------------------
 
 st.header("📂 Cell Viewer")
 
-# --- 2. HELPER FUNCTION UPDATED ---
-# This function now uses the correct session handling
+# This function now correctly handles data types from the data editor
 def update_cycles_in_db(orig: pd.DataFrame, edited: pd.DataFrame, cell_id: int) -> bool:
     """Save all changed cells for this cell_id; returns True if anything updated."""
     orig_filled = orig.fillna("")
@@ -20,6 +18,7 @@ def update_cycles_in_db(orig: pd.DataFrame, edited: pd.DataFrame, cell_id: int) 
     if not diff_mask.any().any():
         return False
 
+    # This map links the DataFrame column names to the database model attributes
     col_map = {
         "Current (mA/cm²)": "current_density",
         "Charge V": "charge_V",
@@ -48,15 +47,21 @@ def update_cycles_in_db(orig: pd.DataFrame, edited: pd.DataFrame, cell_id: int) 
             for col_name, changed in row.items():
                 if changed and col_name in col_map:
                     new_val = edited.loc[row_idx, col_name]
-                    # Handle pandas converting empty text to None
-                    if col_map[col_name] == "observation" and pd.isna(new_val):
-                        new_val = ""
-                    setattr(cycle, col_map[col_name], new_val)
+                    db_attr = col_map[col_name]
+
+                    # --- THIS IS THE FIX ---
+                    # Convert numpy types to standard Python types before saving
+                    if pd.api.types.is_number(new_val):
+                        setattr(cycle, db_attr, float(new_val))
+                    else:
+                        setattr(cycle, db_attr, str(new_val))
+                    # --- END OF FIX ---
+
         db.commit()
     return True
 
-# --- 3. DATA FETCHING UPDATED ---
-# Get all cells for the dropdown selector
+
+# --- Data Fetching Logic ---
 with get_db() as db:
     all_cells = db.query(Cell).order_by(Cell.cell_id).all()
 
@@ -69,7 +74,7 @@ cell_map = {f"{c.cell_id} (Ch {c.channel or '—'})": c.id for c in all_cells}
 cell_keys = list(cell_map.keys())
 
 # Determine the default selection
-prefill_id = st.session_state.pop("log_cell_id", None)
+prefill_id = st.session_state.get("log_cell_id")
 default_idx = 0
 if prefill_id and prefill_id in cell_map.values():
     prefilled_key = next((k for k, v in cell_map.items() if v == prefill_id), None)
@@ -79,7 +84,7 @@ if prefill_id and prefill_id in cell_map.values():
 chosen_label = st.selectbox("Select a cell ▼", cell_keys, index=default_idx)
 cell_id = cell_map[chosen_label]
 
-# --- 4. FETCH DETAILS FOR THE CHOSEN CELL ---
+# Fetch details for the chosen cell
 with get_db() as db:
     cell = db.query(Cell).get(cell_id)
     cycles = (
@@ -106,7 +111,6 @@ if not cycles:
     st.warning("No cycles logged for this cell yet.")
     st.stop()
 
-# --- DataFrame and Plotting logic (no changes needed here) ---
 orig_df = pd.DataFrame(
     [
         {
