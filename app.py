@@ -1,86 +1,100 @@
-import pandas as pd
 import streamlit as st
-from sqlalchemy.orm import Session
+import pandas as pd
 from sqlalchemy import func
-from models.base import engine, Cell, Cycle, Base   # Base for safety
+from zoneinfo import ZoneInfo # For timezone conversion
 
-# auto‑create tables if missing (safe no‑op otherwise)
-Base.metadata.create_all(engine)
+# Imports updated
+from database import get_db
+from models.base import Cell, Cycle
 
-st.set_page_config(
-    page_title="Zn‑Br Tracker",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+st.set_page_config(layout="wide")
+st.header("📊 Cycler Dashboard")
 
-st.title("📊 Cycler Dashboard (8 channels)")
-# in app.py sidebar
-st.sidebar.page_link("pages/02_Select_Cell.py", label="🔍 Select Cell")
-
-
-# ── fetch running cells & cycle stats ────────────────────────────
-with Session(engine) as ses:
-    running_cells = (
-        ses.query(Cell).filter(Cell.status == "running").order_by(Cell.channel).all()
+# --- 1. ADVANCED QUERY TO GET ALL DATA AT ONCE ---
+with get_db() as db:
+    # Subquery to get cycle count and last update time for each cell
+    cycle_agg = (
+        db.query(
+            Cycle.cell_id,
+            func.count(Cycle.id).label("cycle_count"),
+            func.max(Cycle.created_at).label("last_update")
+        )
+        .group_by(Cycle.cell_id)
+        .subquery()
     )
 
-    stats = {}
-    for cell in running_cells:
-        count, last_ts = ses.query(
-            func.count(Cycle.id), func.max(Cycle.created_at)
-        ).filter(Cycle.cell_id == cell.id).one()
-        stats[cell.id] = {"count": count, "last": last_ts}
+    # Main query to join running cells with the aggregated cycle data
+    results = (
+        db.query(Cell, cycle_agg.c.cycle_count, cycle_agg.c.last_update)
+        .outerjoin(cycle_agg, Cell.id == cycle_agg.c.cell_id)
+        .filter(Cell.status == "running")
+        .all()
+    )
 
-# ── build table data ─────────────────────────────────────────────
-rows = []
+# --- 2. PROCESS RESULTS FOR DISPLAY ---
+running_data_list = []
+running_cells_map = {}
+for cell, cycle_count, last_update in results:
+    # Convert UTC time from DB to local time for display
+    last_update_local = "—"
+    if last_update:
+        utc_time = last_update.replace(tzinfo=ZoneInfo("UTC"))
+        local_time = utc_time.astimezone(ZoneInfo("Asia/Kolkata"))
+        last_update_local = local_time.strftime("%d-%b-%Y %H:%M")
+
+    running_data_list.append({
+        "Channel": cell.channel,
+        "Cell ID": cell.cell_id,
+        "Cycles": cycle_count or 0,
+        "Last Update": last_update_local,
+        "Asm Date": cell.assembly_date.date() if cell.assembly_date else "—",
+    })
+    running_cells_map[cell.channel] = cell
+
+df_running = pd.DataFrame(running_data_list)
+
+# Ensure the DataFrame has at least the merge key
+if df_running.empty:
+    df_running = pd.DataFrame(columns=["Channel"])
+
+# Merge with a full channel list to show all 8 channels
+dash = (
+    pd.DataFrame({"Channel": range(1, 9)})
+    .merge(df_running, how="left", on="Channel")
+)
+
+# Define all columns to ensure they exist even if no cells are running
+display_cols = ["Cell ID", "Cycles", "Last Update", "Asm Date"]
+for col in display_cols:
+    if col not in dash.columns:
+        dash[col] = "—"
+dash.fillna("—", inplace=True)
+
+# Reorder columns for a better layout
+final_cols = ["Channel", "Cell ID", "Cycles", "Last Update", "Asm Date"]
+st.dataframe(dash[final_cols], hide_index=True, use_container_width=True)
+
+
+# --- 3. ACTION BUTTONS (NO CHANGE IN LOGIC) ---
+st.write("---")
 for ch in range(1, 9):
-    cell = next((c for c in running_cells if c.channel == ch), None)
-    if cell:
-        s = stats[cell.id]
-        rows.append(
-            {
-                "Channel": ch,
-                "Cell ID": cell.cell_id,
-                "Cycles": s["count"],
-                "Last update": s["last"].strftime("%Y‑%m‑%d %H:%M") if s["last"] else "—",
-            }
-        )
-    else:
-        rows.append(
-            {"Channel": ch, "Cell ID": "—", "Cycles": "—", "Last update": "—"}
-        )
+    col_label, col_action1, col_action2 = st.columns([3, 1, 1])
+    col_label.write(f"**Channel {ch}**")
 
-df_dash = pd.DataFrame(rows)
-st.dataframe(df_dash, hide_index=True, use_container_width=True)
-
-# ── action buttons per channel ───────────────────────────────────
-for ch in range(1, 9):
-    row = df_dash.loc[df_dash["Channel"] == ch].iloc[0]
-    col_lab, col_log, col_stop = st.columns([3, 1, 1])
-    col_lab.write(f"**Channel {ch}** – {row['Cell ID']}")
-
-    if row["Cell ID"] == "—":
-        if col_log.button("Start", key=f"start_{ch}"):
+    if ch not in running_cells_map:
+        if col_action1.button("▶️ Start", key=f"start_{ch}"):
             st.session_state["new_channel"] = ch
             st.switch_page("pages/01_Add_Cell.py")
     else:
-        # Log cycle
-        if col_log.button("Log", key=f"log_{ch}"):
-            with Session(engine) as ses:
-                cell = ses.query(Cell).filter(Cell.channel == ch, Cell.status == "running").first()
+        cell = running_cells_map[ch]
+        if col_action1.button("✍️ Log", key=f"log_{ch}"):
             st.session_state["log_cell_id"] = cell.id
             st.switch_page("pages/02_Log_Cycle.py")
 
-        # Stop cell
-        if col_stop.button("Stop", key=f"stop_{ch}"):
-            with Session(engine) as ses:
-                cell = (
-                    ses.query(Cell)
-                    .filter(Cell.channel == ch, Cell.status == "running")
-                    .first()
-                )
-                if cell:
-                    cell.status = "stopped"
-                    ses.commit()
+        if col_action2.button("⏹️ Stop", key=f"stop_{ch}"):
+            with get_db() as db:
+                cell_to_stop = db.query(Cell).filter(Cell.id == cell.id).first()
+                if cell_to_stop:
+                    cell_to_stop.status = "stopped"
+                    db.commit()
             st.rerun()
